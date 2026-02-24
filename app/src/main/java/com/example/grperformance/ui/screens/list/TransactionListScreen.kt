@@ -30,6 +30,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 val iOSBlue = Color(0xFF2323FF)
+val ScreenBackground = Color(0xFFF2F2F7) // Define it once for consistency
 
 @Composable
 fun TransactionListScreen(
@@ -39,31 +40,22 @@ fun TransactionListScreen(
     onDeleteAll: () -> Unit
 ) {
     val context = LocalContext.current
-
-    // --- DIALOG STATES ---
     var transactionToDelete by remember { mutableStateOf<TransactionEntity?>(null) }
     var showDeleteAllConfirm by remember { mutableStateOf(false) }
 
-    // Single Delete Dialog
+    // --- DIALOGS (REMAIN UNCHANGED) ---
     transactionToDelete?.let { transaction ->
         IOSDeleteDialog(
             title = "Delete this log?",
-            onConfirm = {
-                onDeleteOne(transaction)
-                transactionToDelete = null
-            },
+            onConfirm = { onDeleteOne(transaction); transactionToDelete = null },
             onDismiss = { transactionToDelete = null }
         )
     }
 
-    // Delete All Dialog
     if (showDeleteAllConfirm) {
         IOSDeleteDialog(
             title = "Delete all logs?",
-            onConfirm = {
-                onDeleteAll()
-                showDeleteAllConfirm = false
-            },
+            onConfirm = { onDeleteAll(); showDeleteAllConfirm = false },
             onDismiss = { showDeleteAllConfirm = false }
         )
     }
@@ -77,50 +69,37 @@ fun TransactionListScreen(
                 .padding(top = 24.dp, bottom = 24.dp, start = 16.dp, end = 16.dp),
             contentAlignment = Alignment.Center
         ) {
-            // Export Button (Left)
             if (transactions.isNotEmpty()) {
                 IconButton(
                     onClick = { exportTransactionsToCSV(context, transactions) },
                     modifier = Modifier.align(Alignment.CenterStart)
-                ) {
-                    Icon(Icons.Default.Share, "Export CSV", tint = Color.White)
-                }
+                ) { Icon(Icons.Default.Share, "Export CSV", tint = Color.White) }
             }
 
-            Text(
-                "Travel Logs", // Shorter text to fit between icons
-                color = Color.White,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold
-            )
+            Text("Travel Logs", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
 
-            // Delete All Button (Right)
             if (transactions.isNotEmpty()) {
                 IconButton(
                     onClick = { showDeleteAllConfirm = true },
                     modifier = Modifier.align(Alignment.CenterEnd)
-                ) {
-                    Icon(Icons.Default.Delete, "Delete All", tint = Color.White)
-                }
+                ) { Icon(Icons.Default.Delete, "Delete All", tint = Color.White) }
             }
         }
 
-        // --- CONTENT ---
+        // --- CONTENT AREA ---
         Surface(
             modifier = Modifier.fillMaxSize(),
-            color = Color(0xFFF2F2F7),
+            color = ScreenBackground,
             shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
                 if (transactions.isEmpty()) {
-                    Text(
-                        "No logs found",
-                        modifier = Modifier.align(Alignment.Center),
-                        color = Color.Gray
-                    )
+                    Text("No logs found", modifier = Modifier.align(Alignment.Center), color = Color.Gray)
                 } else {
                     LazyColumn(
-                        contentPadding = PaddingValues(16.dp, 16.dp, 16.dp, 100.dp),
+                        modifier = Modifier.fillMaxSize(),
+                        // Padding 180dp ensures the last card scrolls above the footer and FAB
+                        contentPadding = PaddingValues(16.dp, 16.dp, 16.dp, 180.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         items(transactions) { transaction ->
@@ -132,6 +111,25 @@ fun TransactionListScreen(
                     }
                 }
 
+                // --- SOLID FIXED FOOTER ---
+                // This Box is NOT transparent anymore. It blocks cards from showing through.
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .background(ScreenBackground) // Solid color, no alpha
+                        .navigationBarsPadding() // Account for 3-button nav
+                        .padding(vertical = 20.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Made with 💖 by Glausco Technologies",
+                        color = Color.Gray,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+
                 FloatingActionButton(
                     onClick = onAddClick,
                     containerColor = iOSBlue,
@@ -139,7 +137,8 @@ fun TransactionListScreen(
                     shape = CircleShape,
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
-                        .padding(end = 24.dp, bottom = 48.dp)
+                        .navigationBarsPadding()
+                        .padding(end = 24.dp, bottom = 85.dp) // Pinned above the solid footer
                 ) {
                     Icon(Icons.Default.Add, "Add", modifier = Modifier.size(32.dp))
                 }
@@ -152,33 +151,32 @@ fun TransactionListScreen(
 fun TransactionListItem(transaction: TransactionEntity, onDelete: () -> Unit) {
     val dateStr = SimpleDateFormat("EEEE, h:mm a", Locale.getDefault()).format(Date(transaction.date))
     Card(
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(2.dp),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)
     ) {
         Row(
-            modifier = Modifier.padding(16.dp).fillMaxWidth(),
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp).fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("₹${transaction.amount}", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                Text("₹${transaction.amount}", fontWeight = FontWeight.Bold, fontSize = 22.sp, color = Color.Black)
                 Text(transaction.note.ifEmpty { "No remarks" }, color = Color.Gray, fontSize = 14.sp)
-                Text(
-                    "With: ${transaction.participants.joinToString(", ")}",
-                    fontSize = 12.sp,
-                    color = iOSBlue,
-                    fontWeight = FontWeight.Medium
-                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text("With: ${transaction.participants.joinToString(", ")}", fontSize = 13.sp, color = iOSBlue, fontWeight = FontWeight.SemiBold)
                 Text(dateStr, color = Color.LightGray, fontSize = 11.sp)
             }
             IconButton(onClick = onDelete) {
-                Icon(Icons.Default.Delete, "Delete", tint = Color.Red.copy(alpha = 0.5f))
+                Icon(Icons.Default.Delete, "Delete", tint = Color.Red.copy(alpha = 0.4f), modifier = Modifier.size(20.dp))
             }
         }
     }
 }
+
+// --- REST OF THE CODE (IOSDeleteDialog & exportTransactionsToCSV) ---
+// (Paste your existing IOSDeleteDialog and export function here)
 
 @Composable
 fun IOSDeleteDialog(
@@ -237,18 +235,11 @@ fun IOSDeleteDialog(
     }
 }
 
-// --- Put this at the very bottom of TransactionListScreen.kt ---
-
 fun exportTransactionsToCSV(context: Context, transactions: List<TransactionEntity>) {
-    // 1. Header with your specific order
     val csvHeader = "Date,Amount,Participants,Remarks\n"
-
-    // 2. Mapping data to match the header order
     val csvData = transactions.joinToString("\n") {
         val date = SimpleDateFormat("dd-MM-yyyy HH:mm", Locale.getDefault()).format(Date(it.date))
-        // Using | to separate names so they don't break the CSV columns
         val participants = it.participants.joinToString("|")
-        // Format: Date, Amount, Participants, Remarks
         "$date,${it.amount},$participants,${it.note}"
     }
 
@@ -257,14 +248,12 @@ fun exportTransactionsToCSV(context: Context, transactions: List<TransactionEnti
         val file = File(context.cacheDir, filename)
         file.writeText(csvHeader + csvData)
 
-        // Generate secure URI using the FileProvider defined in Manifest
         val uri = FileProvider.getUriForFile(
             context,
             "${context.packageName}.fileprovider",
             file
         )
 
-        // Share Intent
         val intent = Intent(Intent.ACTION_SEND).apply {
             type = "text/csv"
             putExtra(Intent.EXTRA_STREAM, uri)

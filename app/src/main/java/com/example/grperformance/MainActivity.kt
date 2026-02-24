@@ -5,6 +5,7 @@ import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge // Add this import
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
@@ -19,10 +20,10 @@ import com.example.grperformance.ui.viewmodel.TransactionViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+        // 1. MUST BE CALLED BEFORE super.onCreate
+        enableEdgeToEdge()
 
-        // 1. Enable Edge-to-Edge and 120Hz Support
-        WindowCompat.setDecorFitsSystemWindows(window, false)
+        super.onCreate(savedInstanceState)
 
         // Request High Refresh Rate (120Hz)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -38,6 +39,7 @@ class MainActivity : ComponentActivity() {
         // 3. Create the ViewModel using a Factory
         val viewModel = ViewModelProvider(this, object : ViewModelProvider.Factory {
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                @Suppress("UNCHECKED_CAST")
                 return TransactionViewModel(db.transactionDao()) as T
             }
         })[TransactionViewModel::class.java]
@@ -45,18 +47,21 @@ class MainActivity : ComponentActivity() {
         // 4. Set the Content
         setContent {
             GRPerformanceTheme {
-                // UI Tweak: Make the Navigation Bar icons dark and the bar transparent
                 val view = LocalView.current
                 if (!view.isInEditMode) {
                     SideEffect {
                         val window = (view.context as Activity).window
-                        // Set the navigation bar color to transparent so our screen background shows through
+
+                        // Force transparent bars
                         window.navigationBarColor = android.graphics.Color.TRANSPARENT
+                        window.statusBarColor = android.graphics.Color.TRANSPARENT
 
                         val controller = WindowCompat.getInsetsController(window, view)
-                        // Make status bar icons white (for blue header)
+
+                        // Since your top bar is Blue (Dark), we want White icons on top
                         controller.isAppearanceLightStatusBars = false
-                        // Make navigation bar icons dark (for white content area)
+
+                        // Since your bottom area is Grey (Light), we want Dark icons at the bottom
                         controller.isAppearanceLightNavigationBars = true
                     }
                 }
