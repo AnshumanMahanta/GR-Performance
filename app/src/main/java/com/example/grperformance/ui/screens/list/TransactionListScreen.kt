@@ -43,7 +43,7 @@ fun TransactionListScreen(
     var transactionToDelete by remember { mutableStateOf<TransactionEntity?>(null) }
     var showDeleteAllConfirm by remember { mutableStateOf(false) }
 
-    // --- DIALOGS (REMAIN UNCHANGED) ---
+    // --- DIALOGS (UNCHANGED) ---
     transactionToDelete?.let { transaction ->
         IOSDeleteDialog(
             title = "Delete this log?",
@@ -60,7 +60,14 @@ fun TransactionListScreen(
         )
     }
 
-    Column(modifier = Modifier.fillMaxSize().background(iOSBlue)) {
+    // --- UPDATED OUTER COLUMN ---
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(iOSBlue)
+            // This prevents the Blue background from leaking into the bottom nav area
+            .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))
+    ) {
         // --- HEADER ---
         Box(
             modifier = Modifier
@@ -89,7 +96,7 @@ fun TransactionListScreen(
         // --- CONTENT AREA ---
         Surface(
             modifier = Modifier.fillMaxSize(),
-            color = ScreenBackground,
+            color = ScreenBackground, // This grey color now fills the bottom nav area
             shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
@@ -98,27 +105,22 @@ fun TransactionListScreen(
                 } else {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        // Padding 180dp ensures the last card scrolls above the footer and FAB
                         contentPadding = PaddingValues(16.dp, 16.dp, 16.dp, 180.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         items(transactions) { transaction ->
-                            TransactionListItem(
-                                transaction = transaction,
-                                onDelete = { transactionToDelete = transaction }
-                            )
+                            TransactionListItem(transaction = transaction, onDelete = { transactionToDelete = transaction })
                         }
                     }
                 }
 
                 // --- SOLID FIXED FOOTER ---
-                // This Box is NOT transparent anymore. It blocks cards from showing through.
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
-                        .background(ScreenBackground) // Solid color, no alpha
-                        .navigationBarsPadding() // Account for 3-button nav
+                        .background(ScreenBackground)
+                        .navigationBarsPadding() // Pushes text above the buttons
                         .padding(vertical = 20.dp),
                     contentAlignment = Alignment.Center
                 ) {
@@ -137,8 +139,8 @@ fun TransactionListScreen(
                     shape = CircleShape,
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
-                        .navigationBarsPadding()
-                        .padding(end = 24.dp, bottom = 85.dp) // Pinned above the solid footer
+                        .navigationBarsPadding() // Pushes FAB above the buttons
+                        .padding(end = 24.dp, bottom = 85.dp)
                 ) {
                     Icon(Icons.Default.Add, "Add", modifier = Modifier.size(32.dp))
                 }
